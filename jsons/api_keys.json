@@ -1,1 +1,17 @@
-{}
+{
+    "admin_key": {
+        "key": "Adm-Koyeb-Aariz-7h3t9Z-pL5vQw-jR2s4X",
+        "name": "admin_key",
+        "permissions": [
+            "create_key",
+            "delete_key",
+            "get_key",
+            "get_keys",
+            "get_video",
+            "get_audio",
+            "get_live_video",
+            "get_live_audio",
+            "get_info"
+        ]
+    }
+}
