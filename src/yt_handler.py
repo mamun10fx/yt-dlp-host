@@ -7,6 +7,7 @@ import yt_dlp, os, threading, json, time, shutil
 from yt_dlp.utils import download_range_func
 
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
+COOKIE_PATH = '/app/config/cookies.txt' # Define the path to the cookie file inside the container
 
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
@@ -21,32 +22,32 @@ def get_best_format_size(info, formats, formats_list, is_video=True):
     if not formats_list:
         return 0
     formats_with_size = [f for f in formats_list if (f.get('filesize') or f.get('filesize_approx', 0)) > 0]
-    
+
     if formats_with_size:
         if is_video:
-            return max(formats_with_size, 
+            return max(formats_with_size,
                         key=lambda f: (f.get('height', 0), f.get('tbr', 0)))
         else:
-            return max(formats_with_size, 
+            return max(formats_with_size,
                         key=lambda f: (f.get('abr', 0) or f.get('tbr', 0)))
-    
-    best_format = max(formats_list, 
-                    key=lambda f: (f.get('height', 0), f.get('tbr', 0)) if is_video 
+
+    best_format = max(formats_list,
+                    key=lambda f: (f.get('height', 0), f.get('tbr', 0)) if is_video
                     else (f.get('abr', 0) or f.get('tbr', 0)))
-    
+
     if best_format.get('tbr'):
         estimated_size = int(best_format['tbr'] * info.get('duration', 0) * 128 * 1024 / 8)
         if estimated_size > 0:
             return best_format
-    
+
     similar_formats = [f for f in formats if f.get('height', 0) == best_format.get('height', 0)] if is_video \
                     else [f for f in formats if abs(f.get('abr', 0) - best_format.get('abr', 0)) < 50]
-    
+
     sizes = [f.get('filesize') or f.get('filesize_approx', 0) for f in similar_formats]
     if sizes and any(sizes):
         best_format['filesize_approx'] = max(s for s in sizes if s > 0)
         return best_format
-    
+
     return best_format
 
 def check_and_get_size(url, video_format=None, audio_format=None):
@@ -55,14 +56,15 @@ def check_and_get_size(url, video_format=None, audio_format=None):
             'quiet': True,
             'no_warnings': True,
             'extract_flat': False,
-            'skip_download': True
+            'skip_download': True,
+            'cookies': COOKIE_PATH # Using cookies
         }
-        
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             formats = info['formats']
             total_size = 0
-            
+
             if video_format:
                 if video_format == 'bestvideo':
                     video_formats = [f for f in formats if f.get('vcodec') != 'none' and f.get('acodec') == 'none']
@@ -82,8 +84,8 @@ def check_and_get_size(url, video_format=None, audio_format=None):
                     format_info = next((f for f in formats if f.get('format_id') == audio_format), None)
                     if format_info:
                         total_size += format_info.get('filesize') or format_info.get('filesize_approx', 0)
-            total_size = int(total_size * 1.10)            
-            return total_size if total_size > 0 else -1 
+            total_size = int(total_size * 1.10)
+            return total_size if total_size > 0 else -1
     except Exception as e:
         print(f"Error in check_and_get_size: {str(e)}")
         return -1
@@ -98,7 +100,13 @@ def get_info(task_id, url):
         if not os.path.exists(download_path):
             os.makedirs(download_path)
 
-        ydl_opts = {'quiet': True, 'no_warnings': True, 'extract_flat': True, 'skip_download': True}
+        ydl_opts = {
+            'quiet': True, 
+            'no_warnings': True, 
+            'extract_flat': True, 
+            'skip_download': True,
+            'cookies': COOKIE_PATH # Using cookies
+        }
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -137,7 +145,7 @@ def get(task_id, url, type, video_format="bestvideo", audio_format="bestaudio"):
 
         if not check_memory_limit(api_key, total_size, task_id):
             raise Exception("Memory limit exceeded. Maximum 5GB per 10 minutes.")
-        
+
         download_path = os.path.join(DOWNLOAD_DIR, task_id)
         if not os.path.exists(download_path):
             os.makedirs(download_path)
@@ -152,7 +160,8 @@ def get(task_id, url, type, video_format="bestvideo", audio_format="bestaudio"):
         ydl_opts = {
             'format': format_option,
             'outtmpl': os.path.join(download_path, output_template),
-            'merge_output_format': 'mp4' if type.lower() == 'video' else None
+            'merge_output_format': 'mp4' if type.lower() == 'video' else None,
+            'cookies': COOKIE_PATH # Using cookies
         }
 
         if tasks[task_id].get('start_time') or tasks[task_id].get('end_time'):
@@ -167,7 +176,7 @@ def get(task_id, url, type, video_format="bestvideo", audio_format="bestaudio"):
 
             ydl_opts['download_ranges'] = download_range_func(None, [(start_seconds, end_seconds)])
             ydl_opts['force_keyframes_at_cuts'] = tasks[task_id].get('force_keyframes', False)
-        
+
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
@@ -186,7 +195,7 @@ def get_live(task_id, url, type, start, duration, video_format="bestvideo", audi
         tasks = load_tasks()
         tasks[task_id].update(status='processing')
         save_tasks(tasks)
-        
+
         download_path = os.path.join(DOWNLOAD_DIR, task_id)
         if not os.path.exists(download_path):
             os.makedirs(download_path)
@@ -206,9 +215,10 @@ def get_live(task_id, url, type, start, duration, video_format="bestvideo", audi
             'format': format_option,
             'outtmpl': os.path.join(download_path, output_template),
             'download_ranges': lambda info, *args: [{'start_time': start_time, 'end_time': end_time,}],
-            'merge_output_format': 'mp4' if type.lower() == 'video' else None
+            'merge_output_format': 'mp4' if type.lower() == 'video' else None,
+            'cookies': COOKIE_PATH # Using cookies
         }
-        
+
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
@@ -240,7 +250,7 @@ def cleanup_task(task_id):
 def cleanup_orphaned_folders():
     tasks = load_tasks()
     task_ids = set(tasks.keys())
-    
+
     for folder in os.listdir(DOWNLOAD_DIR):
         folder_path = os.path.join(DOWNLOAD_DIR, folder)
         if os.path.isdir(folder_path) and folder not in task_ids:
