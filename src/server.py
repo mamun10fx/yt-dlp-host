@@ -22,7 +22,17 @@ def health_check():
     """
     return "API server is healthy and running!", 200
 # ===============================================
-
+@app.route('/debug-keys', methods=['GET'])
+def debug_keys():
+    """
+    Reads and displays the content of the api_keys.json file.
+    """
+    try:
+        # The load_keys function is already in your project
+        keys = load_keys() 
+        return jsonify(keys)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 def generate_random_id(length=16):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
