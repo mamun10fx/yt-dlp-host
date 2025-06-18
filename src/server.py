@@ -14,6 +14,34 @@ app.json.sort_keys = False
 # ===============================================
 # Koyeb Health Check-এর জন্য নতুন রুটটি এখানে যোগ করা হয়েছে
 # ===============================================
+
+@app.route('/debug-cookie', methods=['GET'])
+def debug_cookie():
+    """
+    Checks if the cookies.txt file exists and is readable.
+    """
+    cookie_path = '/app/config/cookies.txt'
+    if os.path.exists(cookie_path):
+        try:
+            with open(cookie_path, 'r') as f:
+                content_preview = f.readline().strip() # Reads the first line
+            return jsonify({
+                "status": "File Found",
+                "path": cookie_path,
+                "content_preview": f"Successfully read the file. First line: '{content_preview}'"
+            }), 200
+        except Exception as e:
+            return jsonify({
+                "status": "File Found, but Error Reading",
+                "error": str(e)
+            }), 500
+    else:
+        return jsonify({
+            "status": "File Not Found",
+            "message": "The cookies.txt file does not exist at the expected path.",
+            "expected_path": cookie_path
+        }), 404
+
 @app.route('/', methods=['GET'])
 def health_check():
     """
