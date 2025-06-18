@@ -11,6 +11,19 @@ import json
 app = Flask(__name__)
 app.json.sort_keys = False
 
+# ===============================================
+# Koyeb Health Check-এর জন্য নতুন রুটটি এখানে যোগ করা হয়েছে
+# ===============================================
+@app.route('/', methods=['GET'])
+def health_check():
+    """
+    Koyeb health check endpoint.
+    Returns a 200 OK status to indicate the server is healthy.
+    """
+    return "API server is healthy and running!", 200
+# ===============================================
+
+
 def generate_random_id(length=16):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
@@ -84,16 +97,6 @@ def get_info():
         return jsonify({'status': 'error', 'message': 'URL is required'}), 400
     
     task_id = generate_random_id()
-    # keys = load_keys()
-    # key_name = auth.get_key_name(request.headers.get('X-API-Key'))
-    # key_info = keys[key_name]
-
-    # if 'task_ids' not in key_info:
-    #     key_info['task_ids'] = []
-    # key_info['task_ids'].append(task_id)
-    # keys[key_name] = key_info
-    # auth.save_keys(keys)
-    
     tasks = load_tasks()
     tasks[task_id] = {
         'key_name': auth.get_key_name(request.headers.get('X-API-Key')),
@@ -119,16 +122,6 @@ def get_live_video():
         return jsonify({'status': 'error', 'message': 'URL is required'}), 400
     
     task_id = generate_random_id()
-    # keys = load_keys()
-    # key_name = auth.get_key_name(request.headers.get('X-API-Key'))
-    # key_info = keys[key_name]
-    # keys[key_name] = key_info
-    # auth.save_keys(keys)
-
-    # if 'task_ids' not in key_info:
-    #     key_info['task_ids'] = []
-    # key_info['task_ids'].append(task_id)
-
     tasks = load_tasks()
     tasks[task_id] = {
         'key_name': auth.get_key_name(request.headers.get('X-API-Key')),
@@ -157,16 +150,6 @@ def get_live_audio():
         return jsonify({'status': 'error', 'message': 'URL is required'}), 400
     
     task_id = generate_random_id()
-    # keys = load_keys()
-    # key_name = auth.get_key_name(request.headers.get('X-API-Key'))
-    # key_info = keys[key_name]
-
-    # if 'task_ids' not in key_info:
-    #     key_info['task_ids'] = []
-    # key_info['task_ids'].append(task_id)
-    # keys[key_name] = key_info
-    # auth.save_keys(keys)
-
     tasks = load_tasks()
     tasks[task_id] = {
         'key_name': auth.get_key_name(request.headers.get('X-API-Key')),
