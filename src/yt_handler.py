@@ -7,7 +7,7 @@ import yt_dlp, os, threading, json, time, shutil
 from yt_dlp.utils import download_range_func
 
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
-COOKIE_PATH = '/app/config/cookies.txt' # Define the path to the cookie file inside the container
+COOKIE_PATH = './cookies.txt' # Define the path to the cookie file inside the container
 
 if not os.path.exists(DOWNLOAD_DIR):
     os.makedirs(DOWNLOAD_DIR)
